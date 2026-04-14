@@ -1,131 +1,83 @@
 ---
-description: Create a spec file and feature branch for the next Spendly step
+description: Create a hybrid context/blueprint spec and git branch for a new feature
 argument-hint: "Step number and feature name e.g. 2 registration"
 allowed-tools: Read, Write, Glob, Bash(git:*)
 ---
 
-You are a senior developer spinning up a new feature for the
-Spendly expense tracker. Always follow the rules in CLAUDE.md.
+You are a Senior Systems Architect for Spendly. Your goal is to initialize a feature development environment by creating a "Contract of Truth" (the Spec) and a clean git workspace. 
 
-User input: $ARGUMENTS
+Follow these steps with precision.
 
-## Step 1 — Check working directory is clean
-Run `git status` and check for uncommitted, unstaged, or
-untracked files. If any exist, stop immediately and tell
-the user to commit or stash changes before proceeding.
-DO NOT CONTINUE until the working directory is clean.
+## Step 1 — Integrity & Argument Parsing
+1. Execute `git status --porcelain`. If output is NOT empty, STOP and notify user to commit/stash changes.
+2. From `$ARGUMENTS`, extract:
+   - `step_num`: Zero-pad to 2 digits (e.g., 3 -> "03").
+   - `feat_title`: Title Case (e.g., "Login and Logout").
+   - `feat_slug`: lowercase-kebab-case (max 40 chars).
+   - `branch_name`: `feature/<feat_slug>`.
 
-## Step 2 — Parse the arguments
-From $ARGUMENTS extract:
+**Collision Logic:** If `git branch --list <branch_name>` exists, increment suffix (e.g., `feature/<feat_slug>-v2`).
 
-1. `step_number` — zero-padded to 2 digits: 2 → 02, 11 → 11
-
-2. `feature_title` — human readable title in Title Case
-   - Example: "Registration" or "Login and Logout"
-
-3. `feature_slug` — git and file safe slug
-   - Lowercase, kebab-case
-   - Only a-z, 0-9 and -
-   - Maximum 40 characters
-   - Example: registration, login-logout
-
-4. `branch_name` — format: `feature/<feature_slug>`
-   - Example: `feature/registration`
-
-If you cannot infer these from $ARGUMENTS, ask the user
-to clarify before proceeding.
-
-## Step 3 — Check branch name is not taken
-Run `git branch` to list existing branches.
-If `branch_name` is already taken, append a number:
-`feature/registration-01`, `feature/registration-02` etc.
-
-## Step 4 — Switch to main and pull latest
-Run:
-```
+## Step 2 — Workspace Synchronization
+Execute the following sequence:
+```bash
 git checkout main
 git pull origin main
-```
-
-## Step 5 — Create and switch to the feature branch
-Run:
-```
 git checkout -b <branch_name>
 ```
 
-## Step 6 — Research the codebase
-Read these files before writing the spec:
-- `CLAUDE.md` — roadmap, conventions, schema
-- `app.py` — existing routes and structure
-- `database/db.py` — existing schema and functions
-- All files in `.claude/specs/` — avoid duplicating existing specs
+## Step 3 — Context Research
+Analyze the codebase to prevent redundancy:
+- **Roadmap:** Check `CLAUDE.md`. If this step is marked `[x]`, STOP and warn the user.
+- **Database:** Review `database/db.py` or `schema.sql` to verify current table states.
+- **Specs:** Check `.claude/specs/` to ensure logic doesn't conflict with existing features.
 
-Check `CLAUDE.md` to confirm the requested step is not already
-marked complete. If it is, warn the user and stop.
-
-## Step 7 — Write the spec
-Generate a spec document with this exact structure:
+## Step 4 — Generate Hybrid Spec
+Create `.claude/specs/<step_num>-<feat_slug>.md` with this exact two-section structure:
 
 ---
-# Spec: <feature_title>
+# Spec: <feat_title>
 
-## Overview
-One paragraph describing what this feature does and why
-it exists at this stage of the Spendly roadmap.
+## 1. Context & User Story (Human Layer)
+- **Overview:** 1-2 sentences on functional goals.
+- **User Story:** "As a [role], I want to [action] so that [value]."
+- **Depends on:** List previous Step IDs.
 
-## Depends on
-Which previous steps this feature requires to be complete.
+## 2. Technical Blueprint (Agent Layer)
 
-## Routes
-Every new route needed:
-- `METHOD /path` — description — access level (public/logged-in)
+### **Interface & Contract**
+| Interface | Method | Path | Access | Action |
+| :--- | :--- | :--- | :--- | :--- |
+| [e.g. Route] | [POST] | [/path] | [Public/Auth] | [Logic description] |
 
-If no new routes: state "No new routes".
+### **Execution Plan**
+- **Database:** List SQL changes or "Schema stable".
+- **Modify:** List existing files + specific logic updates.
+- **Create:** List new files + purpose.
 
-## Database changes
-Any new tables, columns, or constraints needed.
-Always verify against `database/db.py` before writing this.
-If none: state "No database changes".
+### **Logic Scenarios (Gherkin-style)**
+- **Scenario:** [Success/Failure case]
+  - **When:** [Trigger condition]
+  - **Then:** [Expected outcome]
 
-## Templates
-- **Create:** list new templates with their path
-- **Modify:** list existing templates and what changes
+### **Hard Constraints (The Guardrails)**
+- Raw SQL only (No ORM); Parameterized queries (`?`).
+- Passwords MUST be hashed with `werkzeug.security`.
+- Use CSS variables (no hardcoded hex). Templates must `extend "base.html"`.
+- Use `session.get('user_id')` to avoid KeyErrors in templates.
 
-## Files to change
-Every file that will be modified.
-
-## Files to create
-Every new file that will be created.
-
-## New dependencies
-Any new pip packages. If none: state "No new dependencies".
-
-## Rules for implementation
-Specific constraints Claude must follow. Always include:
-- No SQLAlchemy or ORMs
-- Parameterised queries only
-- Passwords hashed with werkzeug
-- Use CSS variables — never hardcode hex values
-- All templates extend `base.html`
-
-## Definition of done
-A specific testable checklist. Each item must be
-something that can be verified by running the app.
+## 3. Definition of Done
+- List 5-8 binary, testable requirements (e.g. "Duplicate email returns 400").
 ---
 
-## Step 8 — Save the spec
-Save to: `.claude/specs/<step_number>-<feature_slug>.md`
+## Step 5 — Save & Finalize
+Write the file to disk and ensure `CLAUDE.md` is updated (if applicable) to show the feature is now "In Progress."
 
-## Step 9 — Report to the user
-Print a short summary in this exact format:
-```
+## Step 6 — Handover Report
+Print exactly:
+```text
+✅ Workspace Initialized
 Branch:    <branch_name>
-Spec file: .claude/specs/<step_number>-<feature_slug>.md
-Title:     <feature_title>
+Spec:      .claude/specs/<step_num>-<feat_slug>.md
+Status:    Sync'd with main. Roadmap verified.
 ```
-
-Then tell the user:
-"Review the spec at `.claude/specs/<step_number>-<feature_slug>.md`
-then enter Plan Mode with Shift+Tab twice to begin implementation."
-
-Do not print the full spec in chat unless explicitly asked.
